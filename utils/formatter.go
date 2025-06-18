@@ -1,24 +1,36 @@
 package utils
 
-import "mcp-server/kube"
-import "mcp-server/llm"
 import (
+	"context"
 	"fmt"
+	"strings"
+
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
 )
 
-func BuildPrompt(pod corev1.Pod, logs, events string) string {
-	return fmt.Sprintf(`Analyze the issue with this Kubernetes pod:
+func GetPodLogs(clientset *kubernetes.Clientset, namespace, podName, containerName string) string {
+	req := clientset.CoreV1().Pods(namespace).GetLogs(podName, &corev1.PodLogOptions{Container: containerName})
+	logs, err := req.Do(context.Background()).Raw()
+	if err != nil {
+		return fmt.Sprintf("Failed to get logs: %v", err)
+	}
+	return string(logs)
+}
 
-Name: %s
-Namespace: %s
+func GetPodEvents(clientset *kubernetes.Clientset, namespace, podName string) string {
+	events, err := clientset.CoreV1().Events(namespace).List(context.Background(), metav1.ListOptions{})
+	if err != nil {
+		return fmt.Sprintf("Failed to get events: %v", err)
+	}
 
-Events:
-%s
+	var sb strings.Builder
+	for _, event := range events.Items {
+		if event.InvolvedObject.Name == podName {
+			sb.WriteString(fmt.Sprintf("[%s] %s: %s\n", event.Type, event.Reason, event.Message))
+		}
+	}
 
-Logs:
-%s
-
-Please suggest root cause and potential fix.`,
-		pod.Name, pod.Namespace, events, logs)
+	return sb.String()
 }

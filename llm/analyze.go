@@ -1,3 +1,4 @@
+// llm/analyze.go
 package llm
 
 import (
@@ -12,7 +13,6 @@ type OllamaResponse struct {
 	Response string `json:"response"`
 }
 
-// AnalyzePodIssue sends a prompt to the local Ollama LLM and returns the AI's suggestion.
 func AnalyzePodIssue(prompt string) (string, error) {
 	url := "http://localhost:11434/api/generate"
 	payload := map[string]interface{}{
@@ -21,25 +21,25 @@ func AnalyzePodIssue(prompt string) (string, error) {
 		"stream": false,
 	}
 
-	payloadBytes, err := json.Marshal(payload)
+	encoded, err := json.Marshal(payload)
 	if err != nil {
-		return "", fmt.Errorf("failed to marshal prompt: %w", err)
+		return "", fmt.Errorf("marshal error: %w", err)
 	}
 
-	resp, err := http.Post(url, "application/json", bytes.NewReader(payloadBytes))
+	resp, err := http.Post(url, "application/json", bytes.NewReader(encoded))
 	if err != nil {
-		return "", fmt.Errorf("failed to call Ollama LLM: %w", err)
+		return "", fmt.Errorf("post error: %w", err)
 	}
 	defer resp.Body.Close()
 
-	bodyBytes, err := io.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return "", fmt.Errorf("failed to read LLM response: %w", err)
+		return "", fmt.Errorf("read error: %w", err)
 	}
 
 	var result OllamaResponse
-	if err := json.Unmarshal(bodyBytes, &result); err != nil {
-		return "", fmt.Errorf("failed to unmarshal LLM response: %w", err)
+	if err := json.Unmarshal(body, &result); err != nil {
+		return "", fmt.Errorf("unmarshal error: %w", err)
 	}
 
 	return result.Response, nil
