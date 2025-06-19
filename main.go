@@ -3,10 +3,10 @@ package main
 import (
 	"log"
 
-	"github.com/ghulevishal/mcp-server/kube"
+	"github.com/ghulevishal/mcp-server/server"
 )
 
 func main() {
-	log.Println("Starting MCP server...")
-	kube.WatchPods()
+	log.Println("🚀 Starting MCP HTTP server...")
+	server.StartHTTPServer()
 }
